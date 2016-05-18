@@ -118,7 +118,8 @@ func (g *Generator) randRune(runes []rune) rune {
 
 type RuneGenerator struct {
 	aliases []int
-	probs   []float64
+	probs   []int64
+	sum     int64
 	runes   []rune
 	rand    *rand.Rand
 }
@@ -133,18 +134,15 @@ func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 
 	pairs := len(runes) / 2
 	aliases := make([]int, pairs)
-	probs := make([]float64, pairs)
+	probs := make([]int64, pairs)
 
 	// calculate weights and normalize them
-	var sum float64
+	var sum int64
 	for i := 0; i < pairs; i++ {
 		aliases[i] = i
-		probs[i] = float64(runes[i*2+1] - runes[i*2] + 1)
-		sum += probs[i]
-	}
-	sum /= float64(pairs)
-	for i := 0; i < pairs; i++ {
-		probs[i] /= sum
+		w := int64(runes[i*2+1] - runes[i*2] + 1)
+		probs[i] = w * int64(pairs)
+		sum += w
 	}
 
 	// Walker’s alias method
@@ -152,7 +150,7 @@ func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 	h := 0
 	l := pairs - 1
 	for i, p := range probs {
-		if p >= 1 {
+		if p > sum {
 			hl[h] = i
 			h++
 		} else {
@@ -166,9 +164,9 @@ func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 		j := hl[l]
 		k := hl[h]
 		aliases[j] = k
-		probs[k] += probs[j] - 1
+		probs[k] += probs[j] - sum
 		l++
-		if probs[k] < 1 {
+		if probs[k] < sum {
 			l--
 			h--
 			hl[l] = k
@@ -178,6 +176,7 @@ func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 	return &RuneGenerator{
 		aliases: aliases,
 		probs:   probs,
+		sum:     sum,
 		runes:   runes,
 		rand:    r,
 	}
@@ -190,15 +189,14 @@ func (g *RuneGenerator) Generate() rune {
 
 	i := 0
 	if len(g.runes) > 2 {
-		var v float64
+		var v int64
 		if g.rand != nil {
-			v = g.rand.Float64()
+			i = g.rand.Intn(len(g.probs))
+			v = g.rand.Int63n(g.sum)
 		} else {
-			v = rand.Float64()
+			i = rand.Intn(len(g.probs))
+			v = rand.Int63n(g.sum)
 		}
-		v *= float64(len(g.probs))
-		i = int(v)
-		v -= float64(i)
 		if g.probs[i] <= v {
 			i = g.aliases[i]
 		}
