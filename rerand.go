@@ -3,6 +3,7 @@ package rerand
 import (
 	"errors"
 	"log"
+	"math/big"
 	"math/rand"
 	"regexp/syntax"
 )
@@ -23,6 +24,7 @@ type Generator struct {
 type myinst struct {
 	syntax.Inst
 	runeGenerator *RuneGenerator
+	x, y          *big.Int
 }
 
 func New(pattern string, flags syntax.Flags, r *rand.Rand) (*Generator, error) {
@@ -38,11 +40,50 @@ func New(pattern string, flags syntax.Flags, r *rand.Rand) (*Generator, error) {
 		return nil, err
 	}
 
+	cache := make([]*big.Int, len(prog.Inst))
+	var count func(i uint32) *big.Int
+	count = func(i uint32) *big.Int {
+		if cache[i] != nil {
+			return cache[i]
+		}
+		var ret *big.Int
+		switch prog.Inst[i].Op {
+		default:
+			ret = big.NewInt(0)
+		case syntax.InstRune:
+			var sum int64
+			runes := prog.Inst[i].Rune
+			if len(runes) == 1 {
+				sum = 1
+			} else {
+				for i := 0; i < len(runes); i += 2 {
+					sum += int64(runes[i+1] - runes[i] + 1)
+				}
+			}
+			ret = big.NewInt(sum)
+			ret.Mul(ret, count(prog.Inst[i].Out))
+		case syntax.InstRune1:
+			ret = count(prog.Inst[i].Out)
+		case syntax.InstAlt:
+			ret = big.NewInt(0)
+			ret.Add(count(prog.Inst[i].Arg), count(prog.Inst[i].Out))
+		case syntax.InstCapture:
+			ret = count(prog.Inst[i].Out)
+		case syntax.InstMatch:
+			ret = big.NewInt(1)
+		}
+		cache[i] = ret
+		return ret
+	}
 	inst := make([]myinst, len(prog.Inst))
 	for i, in := range prog.Inst {
 		in2 := myinst{Inst: in}
-		if in.Op == syntax.InstRune {
+		switch in.Op {
+		case syntax.InstRune:
 			in2.runeGenerator = NewRuneGenerator(in.Rune, r)
+		case syntax.InstAlt:
+			in2.x = count(in.Out)
+			in2.y = count(uint32(i))
 		}
 		inst[i] = in2
 	}
@@ -67,7 +108,6 @@ func (g *Generator) Generate() (string, error) {
 	pc := uint32(g.prog.Start)
 	i := inst[pc]
 	result := []rune{}
-	cap := []uint32{}
 
 	for {
 		switch i.Op {
@@ -84,35 +124,21 @@ func (g *Generator) Generate() (string, error) {
 			pc = i.Out
 			i = inst[pc]
 		case syntax.InstAlt:
-			pc = g.randPath(i.Out, i.Arg, cap)
+			a := big.NewInt(0)
+			a.Rand(g.rand, i.y)
+			if a.Cmp(i.x) < 0 {
+				pc = i.Out
+			} else {
+				pc = i.Arg
+			}
 			i = inst[pc]
 		case syntax.InstCapture:
-			cap = append(cap, pc)
-			if len(cap) > (g.max+1)*2 {
-				return string(result), ErrTooManyRepeat
-			}
-			pc = g.randPath(i.Out, i.Arg, cap)
+			pc = i.Out
 			i = inst[pc]
 		case syntax.InstMatch:
-			if g.prog.NumCap > 2 && len(cap) < g.min*2 {
-				return string(result), ErrTooFewRepeat
-			}
 			return string(result), nil
 		}
 	}
-}
-
-func (g *Generator) randPath(out, arg uint32, cap []uint32) uint32 {
-	if rand.Intn(356)%2 == 0 {
-		if len(cap) > 0 && out > cap[len(cap)-1] {
-			return out
-		}
-		return arg
-	}
-	if len(cap) > 0 && arg > cap[len(cap)-1] {
-		return arg
-	}
-	return out
 }
 
 type RuneGenerator struct {
