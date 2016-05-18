@@ -15,12 +15,14 @@ var (
 type Generator struct {
 	pattern  string
 	prog     *syntax.Prog
+	inst     []myinst
 	min, max int
 	rand     *rand.Rand
 }
 
-type inst struct {
-	*syntax.Inst
+type myinst struct {
+	syntax.Inst
+	runeGenerator *RuneGenerator
 }
 
 func New(pattern string, flags syntax.Flags, r *rand.Rand) (*Generator, error) {
@@ -35,9 +37,20 @@ func New(pattern string, flags syntax.Flags, r *rand.Rand) (*Generator, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	inst := make([]myinst, len(prog.Inst))
+	for i, in := range prog.Inst {
+		in2 := myinst{Inst: in}
+		if in.Op == syntax.InstRune {
+			in2.runeGenerator = NewRuneGenerator(in.Rune, r)
+		}
+		inst[i] = in2
+	}
+
 	gen := &Generator{
 		pattern: pattern,
 		prog:    prog,
+		inst:    inst,
 		min:     min,
 		max:     max,
 		rand:    r,
@@ -50,7 +63,7 @@ func (g *Generator) String() string {
 }
 
 func (g *Generator) Generate() (string, error) {
-	inst := g.prog.Inst
+	inst := g.inst
 	pc := uint32(g.prog.Start)
 	i := inst[pc]
 	result := []rune{}
@@ -63,8 +76,7 @@ func (g *Generator) Generate() (string, error) {
 		case syntax.InstFail:
 			// nothing
 		case syntax.InstRune:
-			r := g.randRune(i.Rune)
-			result = append(result, r)
+			result = append(result, i.runeGenerator.Generate())
 			pc = i.Out
 			i = inst[pc]
 		case syntax.InstRune1:
@@ -101,19 +113,6 @@ func (g *Generator) randPath(out, arg uint32, cap []uint32) uint32 {
 		return arg
 	}
 	return out
-}
-
-func (g *Generator) randRune(runes []rune) rune {
-	npair := len(runes) / 2
-	i := rand.Intn(npair)
-	min := int(runes[2*i])
-	max := int(runes[2*i+1])
-
-	if min == max {
-		return rune(min)
-	}
-	randi := min + rand.Intn(max-min)
-	return rune(randi)
 }
 
 type RuneGenerator struct {
