@@ -115,3 +115,46 @@ func TestRuneGenerator(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkGenerator(b *testing.B) {
+	cases := []struct {
+		name   string
+		regexp string
+	}{
+		{`coffeescript`, `[カコヵか][ッー]{1,3}?[フヒふひ]{1,3}[ィェー]{1,3}[ズス][ドクグュ][リイ][プブぷぶ]{1,3}[トドォ]{1,2}`},
+		{``, `[あ-お]{10}`},
+	}
+
+	for _, c := range cases {
+		g, _ := New(c.regexp, syntax.Perl, rand.New(rand.NewSource(1)))
+		name := c.name
+		if name == "" {
+			name = c.regexp
+		}
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				g.Generate()
+			}
+		})
+	}
+}
+
+func BenchmarkRuneGenerator(b *testing.B) {
+	cases := []struct {
+		name  string
+		runes []rune
+	}{
+		{"[a]", []rune{'a'}},
+		{"[a-z]", []rune{'a', 'z'}},
+		{"[a-zA-Z0-9]", []rune{'a', 'z', 'A', 'Z', '0', '9'}},
+	}
+
+	for _, c := range cases {
+		g := NewRuneGenerator(c.runes, rand.New(rand.NewSource(1)))
+		b.Run(c.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				g.Generate()
+			}
+		})
+	}
+}
