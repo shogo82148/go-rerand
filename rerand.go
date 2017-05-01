@@ -13,6 +13,7 @@ var (
 	ErrTooManyRepeat = errors.New("Counted too many repeat.")
 )
 
+// Generator is random string generator
 type Generator struct {
 	pattern  string
 	prog     *syntax.Prog
@@ -27,6 +28,7 @@ type myinst struct {
 	x, y          *big.Int
 }
 
+// New returns new Generator.
 func New(pattern string, flags syntax.Flags, r *rand.Rand) (*Generator, error) {
 	re, err := syntax.Parse(pattern, flags)
 	if err != nil {
@@ -103,6 +105,7 @@ func (g *Generator) String() string {
 	return g.pattern
 }
 
+// Generate generates a random string
 func (g *Generator) Generate() (string, error) {
 	inst := g.inst
 	pc := uint32(g.prog.Start)
@@ -141,6 +144,7 @@ func (g *Generator) Generate() (string, error) {
 	}
 }
 
+// RuneGenerator is random rune generator.
 type RuneGenerator struct {
 	aliases []int
 	probs   []int64
@@ -149,6 +153,7 @@ type RuneGenerator struct {
 	rand    *rand.Rand
 }
 
+// NewRuneGenerator returns new RuneGenerator.
 func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 	if len(runes) <= 2 {
 		return &RuneGenerator{
@@ -207,6 +212,7 @@ func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 	}
 }
 
+// Generate generates random rune.
 func (g *RuneGenerator) Generate() rune {
 	if len(g.runes) == 1 {
 		return g.runes[0]
