@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 	"regexp/syntax"
+	"time"
 )
 
 var (
@@ -30,6 +31,10 @@ type myinst struct {
 
 // New returns new Generator.
 func New(pattern string, flags syntax.Flags, r *rand.Rand) (*Generator, error) {
+	if r == nil {
+		r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
+
 	re, err := syntax.Parse(pattern, flags)
 	if err != nil {
 		return nil, err
@@ -155,6 +160,10 @@ type RuneGenerator struct {
 
 // NewRuneGenerator returns new RuneGenerator.
 func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
+	if r == nil {
+		r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
+
 	if len(runes) <= 2 {
 		return &RuneGenerator{
 			runes: runes,
@@ -220,14 +229,8 @@ func (g *RuneGenerator) Generate() rune {
 
 	i := 0
 	if len(g.runes) > 2 {
-		var v int64
-		if g.rand != nil {
-			i = g.rand.Intn(len(g.probs))
-			v = g.rand.Int63n(g.sum)
-		} else {
-			i = rand.Intn(len(g.probs))
-			v = rand.Int63n(g.sum)
-		}
+		i = g.rand.Intn(len(g.probs))
+		v := g.rand.Int63n(g.sum)
 		if g.probs[i] <= v {
 			i = g.aliases[i]
 		}
@@ -239,10 +242,6 @@ func (g *RuneGenerator) Generate() rune {
 		return rune(min)
 	}
 	randi := min
-	if g.rand != nil {
-		randi += g.rand.Intn(max - min + 1)
-	} else {
-		randi += rand.Intn(max - min + 1)
-	}
+	randi += g.rand.Intn(max - min + 1)
 	return rune(randi)
 }

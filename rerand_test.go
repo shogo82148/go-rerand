@@ -8,7 +8,6 @@ import (
 )
 
 func TestGenerator(t *testing.T) {
-	rand.Seed(1)
 	in := []string{
 		`abc`,
 		`[abc]`,
@@ -42,7 +41,6 @@ func TestGenerator(t *testing.T) {
 func TestGeneratorDistribution(t *testing.T) {
 	const RuneNum = 100000
 	const AllowError = 2000
-	rand.Seed(1)
 	in := []struct {
 		pattern string
 		num     int
@@ -85,7 +83,6 @@ func TestGeneratorDistribution(t *testing.T) {
 func TestRuneGenerator(t *testing.T) {
 	const RuneNum = 100000
 	const AllowError = 2000
-	rand.Seed(1)
 	in := [][]rune{
 		{'a'},
 		{'a', 'a'},
@@ -104,7 +101,7 @@ func TestRuneGenerator(t *testing.T) {
 			}
 		}
 
-		g := NewRuneGenerator(runes, nil)
+		g := NewRuneGenerator(runes, rand.New(rand.NewSource(1)))
 		count := map[rune]int{}
 		for i := 0; i < RuneNum*num; i++ {
 			r := g.Generate()
