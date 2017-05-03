@@ -6,7 +6,7 @@ import (
 	"github.com/t-mrt/gocha"
 )
 
-func BenchmarkStrRand(b *testing.B) {
+func BenchmarkGocha(b *testing.B) {
 	cases := []struct {
 		name   string
 		regexp string
