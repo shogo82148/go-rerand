@@ -1,5 +1,7 @@
 # go-rerand
 
+[![GoDoc](https://godoc.org/github.com/shogo82148/go-rerand?status.svg)](http://godoc.org/github.com/shogo82148/go-rerand)
+
 ## NAME
 
 rerand - Generate random strings based on regular expressions.
