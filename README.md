@@ -69,3 +69,8 @@ Ichinose Shogo<shogo82148@gmail.com>
 ## LICENSE
 
 MIT license. See LICENSE.md for more detail.
+
+## SEE ALSO
+
+- [Songmu/strrand](https://github.com/Songmu/strrand)
+- [t-mrt/gocha](https://github.com/t-mrt/gocha)
