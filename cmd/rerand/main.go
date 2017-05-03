@@ -26,6 +26,11 @@ func main() {
 	flag.BoolVar(&help, "help", false, "show help message")
 	flag.Parse()
 
+	if help {
+		flag.Usage()
+		return
+	}
+
 	var g *rerand.Generator
 	var err error
 	if distinctRunes {
