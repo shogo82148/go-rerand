@@ -14,6 +14,9 @@ import (
 // ErrTooManyRepeat the error used for New.
 var ErrTooManyRepeat = errors.New("rerand: counted too many repeat")
 
+// runes excluding private use area
+const maxRune = 0xEFFFF
+
 // Generator is random string generator
 type Generator struct {
 	pattern  string
@@ -119,6 +122,18 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 			ret.Mul(ret, count(prog.Inst[i].Out))
 		case syntax.InstRune1:
 			ret = count(prog.Inst[i].Out)
+		case syntax.InstRuneAny:
+			ret = count(prog.Inst[i].Out)
+			if distinctRunes {
+				runes := big.NewInt(maxRune + 1)
+				ret = runes.Mul(runes, ret)
+			}
+		case syntax.InstRuneAnyNotNL:
+			ret = count(prog.Inst[i].Out)
+			if distinctRunes {
+				runes := big.NewInt(maxRune)
+				ret = runes.Mul(runes, ret)
+			}
 		case syntax.InstAlt:
 			ret = big.NewInt(0)
 			ret.Add(count(prog.Inst[i].Arg), count(prog.Inst[i].Out))
@@ -142,11 +157,11 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 		case syntax.InstRuneAny:
 			in2.Inst.Op = syntax.InstRune
 			// runes excluding private use area
-			in2.runeGenerator = NewRuneGenerator([]rune{0, 0xEFFFF}, r)
+			in2.runeGenerator = NewRuneGenerator([]rune{0, maxRune}, r)
 		case syntax.InstRuneAnyNotNL:
 			in2.Inst.Op = syntax.InstRune
 			// runes excluding private use area
-			in2.runeGenerator = NewRuneGenerator([]rune{0, '\n' - 1, '\n' + 1, 0xEFFFF}, r)
+			in2.runeGenerator = NewRuneGenerator([]rune{0, '\n' - 1, '\n' + 1, maxRune}, r)
 		case syntax.InstAlt:
 			if prob == 0 {
 				x := count(in.Out)
