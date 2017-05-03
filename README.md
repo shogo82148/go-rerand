@@ -77,3 +77,4 @@ MIT license. See LICENSE.md for more detail.
 
 - [Songmu/strrand](https://github.com/Songmu/strrand)
 - [t-mrt/gocha](https://github.com/t-mrt/gocha)
+- [ymotongpoo/fuzzingo](https://github.com/ymotongpoo/fuzzingo)
