@@ -148,7 +148,7 @@ func (g *Generator) String() string {
 }
 
 // Generate generates a random string
-func (g *Generator) Generate() (string, error) {
+func (g *Generator) Generate() string {
 	inst := g.inst
 	pc := uint32(g.prog.Start)
 	i := inst[pc]
@@ -183,7 +183,7 @@ func (g *Generator) Generate() (string, error) {
 		case syntax.InstMatch:
 			strresult := string(result)
 			g.runes.Put(result)
-			return strresult, nil
+			return strresult
 		}
 	}
 }

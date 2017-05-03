@@ -22,10 +22,7 @@ func TestGenerator(t *testing.T) {
 
 	test := func(g *Generator, re *regexp.Regexp, pattern string) {
 		for i := 0; i < 10000; i++ {
-			s, err := g.Generate()
-			if err != nil {
-				t.Errorf("unexpected error: %v in %s", err, pattern)
-			}
+			s := g.Generate()
 			if !re.MatchString(s) {
 				t.Errorf(`generated string "%s" does not match "%s"`, s, pattern)
 			}
@@ -65,10 +62,7 @@ func TestGeneratorDistinctRunesDistribution(t *testing.T) {
 		}
 		count := map[string]int{}
 		for i := 0; i < RuneNum*c.num; i++ {
-			s, err := g.Generate()
-			if err != nil {
-				t.Errorf("unexpected error: %v in %s", err, c.pattern)
-			}
+			s := g.Generate()
 			count[s] = count[s] + 1
 		}
 		if len(count) != c.num {
