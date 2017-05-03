@@ -8,6 +8,16 @@ import (
 	"testing"
 )
 
+func TestError(t *testing.T) {
+	if _, err := New(`[a-z`, syntax.Perl, nil); err == nil {
+		t.Error("want syntax error, got nil")
+	}
+
+	if _, err := New(`[a-z]*`, syntax.Perl, nil); err != ErrTooManyRepeat {
+		t.Errorf("want too many repeat error, got %v", err)
+	}
+}
+
 func TestGenerator(t *testing.T) {
 	in := []string{
 		`abc`,

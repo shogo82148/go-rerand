@@ -11,10 +11,8 @@ import (
 	"time"
 )
 
-var (
-	ErrTooFewRepeat  = errors.New("Counted too few repeat.")
-	ErrTooManyRepeat = errors.New("Counted too many repeat.")
-)
+// ErrTooManyRepeat the error used for New.
+var ErrTooManyRepeat = errors.New("rerand: counted too many repeat")
 
 // Generator is random string generator
 type Generator struct {
@@ -55,7 +53,7 @@ func NewWithProbability(pattern string, flags syntax.Flags, r *rand.Rand, prob i
 	return newGenerator(pattern, flags, r, false, prob)
 }
 
-func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRunes bool, prob int64) (*Generator, error) {
+func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRunes bool, prob int64) (g *Generator, err error) {
 	if r == nil {
 		r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
@@ -72,12 +70,30 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 		return nil, err
 	}
 
+	defer func() {
+		e := recover()
+		if e == nil {
+			return
+		}
+		if e == ErrTooManyRepeat {
+			err = ErrTooManyRepeat
+			return
+		}
+		panic(err)
+	}()
+
 	cache := make([]*big.Int, len(prog.Inst))
+	visitied := make([]bool, len(prog.Inst))
 	var count func(i uint32) *big.Int
 	count = func(i uint32) *big.Int {
+		if visitied[i] {
+			panic(ErrTooManyRepeat)
+		}
 		if cache[i] != nil {
 			return cache[i]
 		}
+
+		visitied[i] = true
 		var ret *big.Int
 		switch prog.Inst[i].Op {
 		default:
@@ -109,6 +125,7 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 			ret = big.NewInt(1)
 		}
 		cache[i] = ret
+		visitied[i] = false
 		return ret
 	}
 	inst := make([]myinst, len(prog.Inst))
