@@ -27,7 +27,8 @@ type Generator struct {
 type myinst struct {
 	syntax.Inst
 	runeGenerator *RuneGenerator
-	x, y          *big.Int
+	x, y          int64
+	bigX, bigY    *big.Int
 }
 
 // Must is a helper that wraps a call to a function returning (*Generator, error) and panics if the error is non-nil.
@@ -128,6 +129,8 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 		visitied[i] = false
 		return ret
 	}
+
+	maxInt64 := big.NewInt(math.MaxInt64)
 	inst := make([]myinst, len(prog.Inst))
 	for i, in := range prog.Inst {
 		in2 := myinst{Inst: in}
@@ -136,11 +139,22 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 			in2.runeGenerator = NewRuneGenerator(in.Rune, r)
 		case syntax.InstAlt:
 			if prob == 0 {
-				in2.x = count(in.Out)
-				in2.y = count(uint32(i))
+				x := count(in.Out)
+				y := count(uint32(i))
+				var gcd big.Int
+				gcd.GCD(nil, nil, x, y)
+				x = new(big.Int).Div(x, &gcd)
+				y = new(big.Int).Div(y, &gcd)
+				if y.Cmp(maxInt64) <= 0 {
+					in2.x = x.Int64()
+					in2.y = y.Int64()
+				} else {
+					in2.bigX = x
+					in2.bigY = y
+				}
 			} else {
-				in2.x = big.NewInt(prob)
-				in2.y = big.NewInt(math.MaxInt64)
+				in2.x = prob
+				in2.y = math.MaxInt64
 			}
 		}
 		inst[i] = in2
@@ -170,6 +184,7 @@ func (g *Generator) Generate() string {
 	pc := uint32(g.prog.Start)
 	i := inst[pc]
 	result := g.runes.Get().([]rune)[:0]
+	var a big.Int
 
 	for {
 		switch i.Op {
@@ -186,9 +201,15 @@ func (g *Generator) Generate() string {
 			pc = i.Out
 			i = inst[pc]
 		case syntax.InstAlt:
-			a := big.NewInt(0)
-			a.Rand(g.rand, i.y)
-			if a.Cmp(i.x) < 0 {
+			var cmp bool
+			if i.y > 0 {
+				a := g.rand.Int63n(i.y)
+				cmp = a < i.x
+			} else {
+				a.Rand(g.rand, i.bigY)
+				cmp = a.Cmp(i.bigX) < 0
+			}
+			if cmp {
 				pc = i.Out
 			} else {
 				pc = i.Arg
