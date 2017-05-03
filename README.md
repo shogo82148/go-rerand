@@ -1,6 +1,7 @@
 # go-rerand
 
 [![GoDoc](https://godoc.org/github.com/shogo82148/go-rerand?status.svg)](http://godoc.org/github.com/shogo82148/go-rerand)
+[![Build Status](https://travis-ci.org/shogo82148/go-rerand.svg?branch=master)](https://travis-ci.org/shogo82148/go-rerand)
 
 ## NAME
 
