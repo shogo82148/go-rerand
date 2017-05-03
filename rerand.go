@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"math/rand"
 	"regexp/syntax"
+	"sync"
 	"time"
 )
 
@@ -22,6 +23,7 @@ type Generator struct {
 	inst     []myinst
 	min, max int
 	rand     *rand.Rand
+	runes    *sync.Pool
 }
 
 type myinst struct {
@@ -134,6 +136,9 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 		min:     min,
 		max:     max,
 		rand:    r,
+		runes: &sync.Pool{
+			New: func() interface{} { return []rune{} },
+		},
 	}
 	return gen, nil
 }
@@ -147,7 +152,7 @@ func (g *Generator) Generate() (string, error) {
 	inst := g.inst
 	pc := uint32(g.prog.Start)
 	i := inst[pc]
-	result := []rune{}
+	result := g.runes.Get().([]rune)[:0]
 
 	for {
 		switch i.Op {
@@ -176,7 +181,9 @@ func (g *Generator) Generate() (string, error) {
 			pc = i.Out
 			i = inst[pc]
 		case syntax.InstMatch:
-			return string(result), nil
+			strresult := string(result)
+			g.runes.Put(result)
+			return strresult, nil
 		}
 	}
 }
