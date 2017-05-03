@@ -1,6 +1,7 @@
 package rerand
 
 import (
+	"math"
 	"math/rand"
 	"regexp"
 	"regexp/syntax"
@@ -19,13 +20,7 @@ func TestGenerator(t *testing.T) {
 		`abc(def|ghi)`,
 	}
 
-	for _, pattern := range in {
-		re := regexp.MustCompile(pattern)
-		g, err := New(pattern, syntax.Perl, rand.New(rand.NewSource(1)))
-		if err != nil {
-			t.Errorf("unexpected error: %v in %s", err, pattern)
-			continue
-		}
+	test := func(g *Generator, re *regexp.Regexp, pattern string) {
 		for i := 0; i < 10000; i++ {
 			s, err := g.Generate()
 			if err != nil {
@@ -36,9 +31,16 @@ func TestGenerator(t *testing.T) {
 			}
 		}
 	}
+
+	for _, pattern := range in {
+		re := regexp.MustCompile(pattern)
+		test(Must(New(pattern, syntax.Perl, rand.New(rand.NewSource(1)))), re, pattern)
+		test(Must(NewDistinctRunes(pattern, syntax.Perl, rand.New(rand.NewSource(1)))), re, pattern)
+		test(Must(NewWithProbability(pattern, syntax.Perl, rand.New(rand.NewSource(1)), math.MaxInt64/2)), re, pattern)
+	}
 }
 
-func TestGeneratorDistribution(t *testing.T) {
+func TestGeneratorDistinctRunesDistribution(t *testing.T) {
 	const RuneNum = 100000
 	const AllowError = 2000
 	in := []struct {
@@ -56,7 +58,7 @@ func TestGeneratorDistribution(t *testing.T) {
 	}
 
 	for _, c := range in {
-		g, err := New(c.pattern, syntax.Perl, rand.New(rand.NewSource(1)))
+		g, err := NewDistinctRunes(c.pattern, syntax.Perl, rand.New(rand.NewSource(1)))
 		if err != nil {
 			t.Errorf("unexpected error: %v in %s", err, c.pattern)
 			continue
