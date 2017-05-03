@@ -15,6 +15,10 @@ func BenchmarkGocha(b *testing.B) {
 		{``, `[あ-お]{10}`},
 		{``, `[[:alpha:]]`},
 		{``, `\S`},
+		{``, `\S{10}`},
+		{``, `\pN`},
+		{``, `\p{Greek}`},
+		{`telephone`, `\d{2,3}-\d{3,4}-\d{3,4}`},
 	}
 
 	for _, c := range cases {

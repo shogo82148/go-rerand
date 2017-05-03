@@ -28,9 +28,17 @@ func TestGenerator(t *testing.T) {
 		`abc|def`,
 		`abc|def|ghi`,
 		`abc(def|ghi)`,
+		`[xyz]`,
+		`[^xyz]`,
 		`[[:alpha:]]`,
+		`[[:^alpha:]]`,
 		`\pN`,
 		`\p{Greek}`,
+		`\PN`,
+		`\P{Greek}`,
+		`\d`,
+		`\D`,
+		`.`,
 	}
 
 	test := func(g *Generator, re *regexp.Regexp, pattern string) {
@@ -134,8 +142,10 @@ func BenchmarkGenerator(b *testing.B) {
 		{``, `[あ-お]{10}`},
 		{``, `[[:alpha:]]`},
 		{``, `\S`},
+		{``, `\S{10}`},
 		{``, `\pN`},
 		{``, `\p{Greek}`},
+		{`telephone`, `\d{2,3}-\d{3,4}-\d{3,4}`},
 	}
 
 	for _, c := range cases {

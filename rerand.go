@@ -139,6 +139,14 @@ func newGenerator(pattern string, flags syntax.Flags, r *rand.Rand, distinctRune
 		switch in.Op {
 		case syntax.InstRune:
 			in2.runeGenerator = NewRuneGenerator(in.Rune, r)
+		case syntax.InstRuneAny:
+			in2.Inst.Op = syntax.InstRune
+			// runes excluding private use area
+			in2.runeGenerator = NewRuneGenerator([]rune{0, 0xEFFFF}, r)
+		case syntax.InstRuneAnyNotNL:
+			in2.Inst.Op = syntax.InstRune
+			// runes excluding private use area
+			in2.runeGenerator = NewRuneGenerator([]rune{0, '\n' - 1, '\n' + 1, 0xEFFFF}, r)
 		case syntax.InstAlt:
 			if prob == 0 {
 				x := count(in.Out)
