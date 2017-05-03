@@ -20,8 +20,10 @@ type Generator struct {
 	prog     *syntax.Prog
 	inst     []myinst
 	min, max int
-	rand     *rand.Rand
 	runes    *sync.Pool
+
+	mu   sync.Mutex
+	rand *rand.Rand
 }
 
 type myinst struct {
@@ -178,7 +180,8 @@ func (g *Generator) String() string {
 	return g.pattern
 }
 
-// Generate generates a random string
+// Generate generates a random string.
+// It is safe for concurrent use by multiple goroutines.
 func (g *Generator) Generate() string {
 	inst := g.inst
 	pc := uint32(g.prog.Start)
@@ -193,7 +196,10 @@ func (g *Generator) Generate() string {
 		case syntax.InstFail:
 			// nothing
 		case syntax.InstRune:
-			result = append(result, i.runeGenerator.Generate())
+			g.mu.Lock()
+			r := i.runeGenerator.Generate()
+			g.mu.Unlock()
+			result = append(result, r)
 			pc = i.Out
 			i = inst[pc]
 		case syntax.InstRune1:
@@ -203,10 +209,14 @@ func (g *Generator) Generate() string {
 		case syntax.InstAlt:
 			var cmp bool
 			if i.y > 0 {
+				g.mu.Lock()
 				a := g.rand.Int63n(i.y)
+				g.mu.Unlock()
 				cmp = a < i.x
 			} else {
+				g.mu.Lock()
 				a.Rand(g.rand, i.bigY)
+				g.mu.Unlock()
 				cmp = a.Cmp(i.bigX) < 0
 			}
 			if cmp {
@@ -232,7 +242,9 @@ type RuneGenerator struct {
 	probs   []int64
 	sum     int64
 	runes   []rune
-	rand    *rand.Rand
+
+	mu   sync.Mutex
+	rand *rand.Rand
 }
 
 // NewRuneGenerator returns new RuneGenerator.
@@ -299,6 +311,7 @@ func NewRuneGenerator(runes []rune, r *rand.Rand) *RuneGenerator {
 }
 
 // Generate generates random rune.
+// It is safe for concurrent use by multiple goroutines.
 func (g *RuneGenerator) Generate() rune {
 	if len(g.runes) == 1 {
 		return g.runes[0]
@@ -306,8 +319,10 @@ func (g *RuneGenerator) Generate() rune {
 
 	i := 0
 	if len(g.runes) > 2 {
+		g.mu.Lock()
 		i = g.rand.Intn(len(g.probs))
 		v := g.rand.Int63n(g.sum)
+		g.mu.Unlock()
 		if g.probs[i] <= v {
 			i = g.aliases[i]
 		}
@@ -319,6 +334,8 @@ func (g *RuneGenerator) Generate() rune {
 		return rune(min)
 	}
 	randi := min
+	g.mu.Lock()
 	randi += g.rand.Intn(max - min + 1)
+	g.mu.Unlock()
 	return rune(randi)
 }
